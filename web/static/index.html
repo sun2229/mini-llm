@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini-LLM · 本地大模型</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">◈</span>
+        <div>
+          <h1>Mini-LLM</h1>
+          <p id="status">正在检查模型状态…</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="clearBtn" class="btn ghost" title="清空对话">清空对话</button>
+      </div>
+    </header>
+
+    <main id="chat" class="chat">
+      <div class="welcome">
+        <h2>模型已在本地运行</h2>
+        <p>这是一个从零手写 Transformer 的推理引擎，对话不会离开你的电脑。</p>
+      </div>
+    </main>
+
+    <footer class="composer">
+      <div class="input-wrap">
+        <textarea id="input" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
+        <button id="sendBtn" class="btn primary">发送</button>
+        <button id="stopBtn" class="btn danger" hidden>停止</button>
+      </div>
+      <p class="hint">温度、top-p 等参数可在 app.js 顶部调整 · 本地推理速度取决于硬件</p>
+    </footer>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

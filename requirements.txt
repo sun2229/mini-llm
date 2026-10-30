@@ -1,0 +1,13 @@
+# 核心依赖
+torch>=2.5.0
+safetensors>=0.4.5
+tokenizers>=0.20.0
+
+# Web 服务
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.9.0
+
+# 模型下载（二选一即可，国内推荐 modelscope）
+modelscope>=1.18.0
+huggingface_hub>=0.25.0
