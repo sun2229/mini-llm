@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Star · 本地大模型下载</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #181b24;
+    --border: #2a2f3a;
+    --text: #e8eaf0;
+    --muted: #9aa0ae;
+    --accent: #7c6cff;
+    --accent2: #4ec9ff;
+    --ok: #35d07f;
+    --warn: #ffb648;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .hero {
+    text-align: center;
+    padding: 72px 24px 40px;
+    max-width: 860px;
+  }
+  .logo {
+    width: 96px; height: 96px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 52px; font-weight: 800; color: #fff;
+    box-shadow: 0 12px 40px rgba(124,108,255,.35);
+    margin-bottom: 24px;
+  }
+  h1 { font-size: 40px; letter-spacing: .5px; }
+  .subtitle { color: var(--muted); margin-top: 12px; font-size: 16px; }
+  .badges { margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .badge {
+    font-size: 13px; padding: 6px 14px; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--muted);
+  }
+  .badge.ok { color: var(--ok); border-color: rgba(53,208,127,.4); }
+  .cards {
+    display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+    padding: 16px 24px 64px; max-width: 900px;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; width: 340px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .card.recommend { border-color: rgba(124,108,255,.6); box-shadow: 0 8px 32px rgba(124,108,255,.15); }
+  .tag {
+    align-self: flex-start; font-size: 12px; padding: 4px 10px;
+    border-radius: 999px; background: rgba(124,108,255,.15);
+    color: var(--accent2); font-weight: 600;
+  }
+  .tag.full { background: rgba(53,208,127,.12); color: var(--ok); }
+  .card h2 { font-size: 22px; }
+  .desc { color: var(--muted); font-size: 14px; line-height: 1.7; flex: 1; }
+  .size { font-size: 13px; color: var(--muted); }
+  .btn {
+    display: inline-block; text-align: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; font-weight: 700; font-size: 16px;
+    padding: 14px 0; border-radius: 12px; text-decoration: none;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,108,255,.35); }
+  .steps {
+    max-width: 860px; padding: 24px; width: 100%;
+  }
+  .steps h3 { font-size: 20px; margin-bottom: 16px; }
+  .step { display: flex; gap: 14px; margin-bottom: 14px; color: var(--muted); font-size: 15px; line-height: 1.7; }
+  .num {
+    flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(124,108,255,.18); color: var(--accent2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+  }
+  .gpu-note {
+    max-width: 860px; width: calc(100% - 48px); margin: 0 24px 48px;
+    background: rgba(255,182,72,.08); border: 1px solid rgba(255,182,72,.3);
+    border-radius: 12px; padding: 16px 20px; font-size: 14px; color: var(--warn); line-height: 1.7;
+  }
+  .footer { color: #4a4f5c; font-size: 13px; padding: 24px; text-align: center; }
+  code { background: rgba(255,255,255,.08); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+</style>
+</head>
+<body>
+  <div class="hero">
+    <div class="logo">★</div>
+    <h1>Star · 本地大模型</h1>
+    <p class="subtitle">手搓 Transformer 的 Qwen2.5-0.5B 本地对话软件 —— 离线、私密、双击即用</p>
+    <div class="badges">
+      <span class="badge ok">Windows 10/11</span>
+      <span class="badge ok">完全离线</span>
+      <span class="badge ok">CPU 可跑</span>
+      <span class="badge">NVIDIA GPU 可加速</span>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card recommend">
+      <span class="tag">推荐 · 首次使用</span>
+      <h2>轻量版</h2>
+      <p class="desc">软件本体，不含模型。首次启动自动从 ModelScope 下载约 1GB 模型（一次即可，之后完全离线）。适合网络条件好的用户。</p>
+      <span class="size">安装包约 320MB</span>
+      <a class="btn" id="lite-btn" href="#" onclick="alert('安装包正在上传，稍后再来～'); return false;">下载轻量版</a>
+    </div>
+    <div class="card">
+      <span class="tag full">开箱即用</span>
+      <h2>完整版</h2>
+      <p class="desc">软件 + Qwen2.5-0.5B 模型打包在一起，解压即用，无需联网下载模型。适合网络条件一般或想立刻体验的用户。</p>
+      <span class="size">安装包约 1.1GB</span>
+      <a class="btn" id="full-btn" href="#" onclick="alert('安装包正在上传，稍后再来～'); return false;">下载完整版</a>
+    </div>
+  </div>
+
+  <div class="steps">
+    <h3>使用方法</h3>
+    <div class="step"><span class="num">1</span><span>下载安装包（zip），右键 → 解压到当前文件夹</span></div>
+    <div class="step"><span class="num">2</span><span>进入解压后的 <code>Star</code> 文件夹，双击 <code>Star.exe</code> 打开软件窗口</span></div>
+    <div class="step"><span class="num">3</span><span>轻量版首次启动会自动下载模型，进度条走完即可开始对话</span></div>
+    <div class="step"><span class="num">4</span><span>浏览器访问 <code>http://127.0.0.1:8123/</code> 也可以使用同一个服务</span></div>
+  </div>
+
+  <div class="gpu-note">
+    ⚡ 检测到 NVIDIA 显卡时，软件内会提示可安装 GPU 加速组件：推理速度提升约 3–5 倍。当前版本为 CPU 版（N 卡也能跑，只是稍慢），GPU 加速组件包将随后发布。
+  </div>
+
+  <div class="footer">
+    Star v1.0.0 · 开源项目 <a href="https://github.com/sun2229/mini-llm" style="color:var(--muted)">mini-llm</a> · 模型 Qwen/Qwen2.5-0.5B-Instruct
+  </div>
+</body>
+</html>
