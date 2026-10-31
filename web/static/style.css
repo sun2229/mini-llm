@@ -85,6 +85,17 @@ body {
 .welcome h2 { color: var(--text); margin-bottom: 10px; }
 .welcome p { font-size: 14px; }
 
+/* 模型下载面板 */
+.model-panel { max-width: 480px; margin: auto; padding: 28px 32px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; }
+.model-panel h2 { font-size: 19px; }
+.model-panel p { line-height: 1.7; color: var(--muted); }
+.model-actions { margin-top: 18px; }
+.btn.big { padding: 12px 26px; font-size: 15px; }
+.progress { margin-top: 16px; text-align: left; }
+.progress-bar { height: 8px; background: var(--panel-2); border-radius: 6px; overflow: hidden; }
+.progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 6px; transition: width .3s; }
+#progressText { margin-top: 8px; font-size: 12.5px; }
+
 .msg { display: flex; gap: 12px; max-width: 85%; }
 .msg.user { align-self: flex-end; flex-direction: row-reverse; }
 .msg .avatar {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mini-LLM · 本地大模型</title>
+  <title>Star · 本地大模型</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
@@ -22,9 +22,21 @@
     </header>
 
     <main id="chat" class="chat">
-      <div class="welcome">
+      <div class="welcome" id="welcome">
         <h2>模型已在本地运行</h2>
         <p>这是一个从零手写 Transformer 的推理引擎，对话不会离开你的电脑。</p>
+      </div>
+      <div class="welcome model-panel" id="modelPanel" hidden>
+        <h2>欢迎使用 Star</h2>
+        <p id="modelPanelText">首次使用需要下载一个开源大模型（约 0.6GB），下载完成后即可离线对话。</p>
+        <div class="model-actions">
+          <button id="downloadBtn" class="btn primary big">下载模型并开始</button>
+          <p class="hint" id="gpuHint" hidden></p>
+        </div>
+        <div class="progress" id="progressWrap" hidden>
+          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+          <p class="hint" id="progressText">准备中…</p>
+        </div>
       </div>
     </main>
 

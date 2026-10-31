@@ -13,10 +13,12 @@ const sendBtn = document.getElementById("sendBtn");
 const stopBtn = document.getElementById("stopBtn");
 const clearBtn = document.getElementById("clearBtn");
 const statusEl = document.getElementById("status");
+const welcomeEl = document.getElementById("welcome");
 
 let messages = [];        // 发给后端的多轮历史
 let generating = false;
 let abortController = null;
+let pollTimer = null;
 
 // ---------------- 模型状态 ----------------
 async function checkHealth() {
@@ -25,8 +27,10 @@ async function checkHealth() {
     const data = await res.json();
     if (data.status === "ok") {
       statusEl.textContent = `${data.model} · ${data.device} · ${data.parameters_billion}B 参数`;
+      document.getElementById("modelPanel").hidden = true;
+      welcomeEl.hidden = false;
     } else {
-      statusEl.textContent = "未找到模型，请先运行 download_model.py 下载";
+      showModelPanel();
     }
   } catch {
     statusEl.textContent = "后端未连接";
@@ -34,10 +38,84 @@ async function checkHealth() {
 }
 checkHealth();
 
+function showModelPanel() {
+  statusEl.textContent = "模型未安装";
+  welcomeEl.hidden = true;
+  const panel = document.getElementById("modelPanel");
+  panel.hidden = false;
+  fetch("/api/model-status")
+    .then(r => r.json())
+    .then(st => {
+      if (st.gpu) {
+        document.getElementById("gpuHint").hidden = false;
+        document.getElementById("gpuHint").textContent =
+          "检测到 NVIDIA 显卡，可稍后下载 GPU 加速组件提升速度";
+      }
+    })
+    .catch(() => {});
+}
+
+// ---------------- 模型下载 ----------------
+document.getElementById("downloadBtn").addEventListener("click", async () => {
+  const btn = document.getElementById("downloadBtn");
+  const wrap = document.getElementById("progressWrap");
+  btn.disabled = true;
+  btn.textContent = "下载中…";
+  wrap.hidden = false;
+  document.getElementById("modelPanelText").textContent =
+    "正在从国内镜像下载开源大模型，约 0.6GB，请保持网络连接…";
+
+  try {
+    await fetch("/api/download-model", { method: "POST" });
+  } catch { /* 轮询接口仍会返回进度 */ }
+
+  pollTimer = setInterval(async () => {
+    try {
+      const r = await fetch("/api/download-progress");
+      const st = await r.json();
+      const pct = Math.round((st.progress || 0) * 100);
+      document.getElementById("progressFill").style.width = pct + "%";
+      document.getElementById("progressText").textContent =
+        `${st.message || "下载中…"} ${pct}%`;
+
+      if (st.done) {
+        clearInterval(pollTimer);
+        btn.disabled = false;
+        btn.textContent = "正在加载模型…";
+        document.getElementById("progressText").textContent = "下载完成，正在加载模型…";
+        await loadModelAfterDownload();
+      } else if (st.error) {
+        clearInterval(pollTimer);
+        btn.disabled = false;
+        btn.textContent = "重试下载";
+        document.getElementById("progressText").textContent = st.error;
+        document.getElementById("modelPanelText").textContent = "下载失败，请检查网络后重试。";
+      }
+    } catch { /* 网络抖动忽略 */ }
+  }, 1200);
+});
+
+async function loadModelAfterDownload() {
+  for (let i = 0; i < 120; i++) {
+    const r = await fetch("/api/health");
+    const h = await r.json();
+    if (h.status === "ok") {
+      clearInterval(pollTimer);
+      document.getElementById("modelPanel").hidden = true;
+      welcomeEl.hidden = false;
+      statusEl.textContent = `${h.model} · ${h.device} · ${h.parameters_billion}B 参数`;
+      return;
+    }
+    await new Promise(res => setTimeout(res, 1000));
+  }
+  document.getElementById("progressText").textContent = "模型加载超时，请重试";
+}
+
 // ---------------- DOM 工具 ----------------
 function addMessage(role, content = "") {
-  const welcome = chatEl.querySelector(".welcome");
-  if (welcome) welcome.remove();
+  if (!welcomeEl.hidden) welcomeEl.hidden = true;
+  const panel = document.getElementById("modelPanel");
+  if (!panel.hidden) panel.hidden = true;
 
   const msg = document.createElement("div");
   msg.className = `msg ${role}`;
@@ -57,6 +135,10 @@ function addMessage(role, content = "") {
 async function send() {
   const text = inputEl.value.trim();
   if (!text || generating) return;
+  if (!document.getElementById("modelPanel").hidden) {
+    showModelPanel();
+    return;
+  }
 
   messages.push({ role: "user", content: text });
   addMessage("user", text);
@@ -132,11 +214,13 @@ stopBtn.addEventListener("click", () => abortController && abortController.abort
 clearBtn.addEventListener("click", () => {
   if (generating) return;
   messages = [];
-  chatEl.innerHTML = "";
-  const welcome = document.createElement("div");
-  welcome.className = "welcome";
-  welcome.innerHTML = "<h2>对话已清空</h2><p>开始新的一轮对话吧。</p>";
-  chatEl.appendChild(welcome);
+  // 移除所有消息节点，保留 #welcome 与 #modelPanel
+  [...chatEl.children].forEach(node => {
+    if (node.id !== "welcome" && node.id !== "modelPanel") node.remove();
+  });
+  welcomeEl.hidden = false;
+  welcomeEl.querySelector("h2").textContent = "对话已清空";
+  welcomeEl.querySelector("p").textContent = "开始新的一轮对话吧。";
 });
 
 inputEl.addEventListener("keydown", (e) => {

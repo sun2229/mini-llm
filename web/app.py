@@ -11,6 +11,8 @@ FastAPI 后端：加载手写模型，提供 REST 与 SSE 流式聊天接口。
 from __future__ import annotations
 
 import json
+import os
+import sys
 from pathlib import Path
 
 import torch
@@ -21,42 +23,93 @@ from pydantic import BaseModel
 
 from mini_llm.chat import DEFAULT_SYSTEM_PROMPT, build_prompt_ids
 from mini_llm.generation import GenConfig, generate, generate_stream
+from mini_llm.model_manager import ModelManager
 from mini_llm.tokenizer import ChatTokenizer
 from mini_llm.weights import build_model_from_dir
 
 # 项目根目录与默认模型路径（可通过环境变量覆盖）
-ROOT = Path(__file__).resolve().parent.parent
-MODEL_DIR = Path(__import__("os").environ.get("MINI_LLM_MODEL", ROOT / "models" / "Qwen2.5-1.5B-Instruct"))
+# 打包后（PyInstaller frozen）cwd 已切到 exe 目录，models/ 与其同级
+if getattr(sys, "frozen", False):
+    ROOT = Path(sys.executable).resolve().parent
+else:
+    ROOT = Path(__file__).resolve().parent.parent
+MODELS_DIR = Path(os.environ.get("MINI_LLM_MODELS", ROOT / "models"))
+MODEL_DIR = Path(os.environ.get("MINI_LLM_MODEL", "")) or (MODELS_DIR / "Qwen2.5-0.5B-Instruct")
 
 app = FastAPI(title="Mini-LLM", version="1.0.0")
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
+manager = ModelManager(MODELS_DIR)
 
 
 # --------------------------------------------------------------------------- #
-# 模型单例：启动时加载一次
+# 模型单例：启动时加载一次；模型缺失时由 /api/chat 触发动态加载
 # --------------------------------------------------------------------------- #
 class Engine:
     model = None
     tokenizer = None
     device = None
     dtype = None
+    model_dir: Path | None = None
 
     @classmethod
-    def load(cls):
+    def load(cls) -> bool:
         if cls.model is not None:
-            return
+            return True
+        target = cls._find_model_dir()
+        if target is None or not (target / "config.json").exists():
+            return False
         cls.device = "cuda" if torch.cuda.is_available() else "cpu"
         cls.dtype = torch.float16 if cls.device == "cuda" else torch.float32
-        cls.model = build_model_from_dir(MODEL_DIR, device=cls.device, dtype=cls.dtype)
-        cls.tokenizer = ChatTokenizer(MODEL_DIR)
+        try:
+            cls.model = build_model_from_dir(target, device=cls.device, dtype=cls.dtype)
+        except Exception as e:  # noqa: BLE001
+            print(f"[错误] 模型加载失败: {e}")
+            return False
+        cls.tokenizer = ChatTokenizer(target)
+        cls.model_dir = Path(target)
+        return True
+
+    @classmethod
+    def _find_model_dir(cls) -> Path | None:
+        if not MODELS_DIR.exists():
+            return None
+        dirs = sorted(d for d in MODELS_DIR.iterdir()
+                      if d.is_dir() and (d / "config.json").exists())
+        return dirs[0] if dirs else None
 
 
 @app.on_event("startup")
 def startup():
-    if MODEL_DIR.exists():
-        Engine.load()
+    if Engine.load():
+        print(f"[OK] 模型已加载: {Engine.model_dir}")
     else:
-        print(f"[警告] 模型目录不存在: {MODEL_DIR}，请先运行 download_model.py")
+        print(f"[提示] 模型未就绪，前端将引导下载（目录: {MODELS_DIR}）")
+
+
+# --------------------------------------------------------------------------- #
+# 模型管理接口（Star 桌面版用）
+# --------------------------------------------------------------------------- #
+@app.get("/api/model-status")
+def model_status():
+    models = manager.list_models()
+    return {
+        "has_model": Engine.model is not None or len(models) > 0,
+        "models": models,
+        "loading": Engine.model is not None,
+        "gpu": manager.has_nvidia_gpu(),
+        "torch_cuda": torch.cuda.is_available(),
+    }
+
+
+@app.post("/api/download-model")
+def download_model():
+    state = manager.download_default()
+    return {"started": state["running"], "state": state}
+
+
+@app.get("/api/download-progress")
+def download_progress():
+    return manager.download_progress()
 
 
 # --------------------------------------------------------------------------- #
@@ -89,7 +142,7 @@ def health():
     return {
         "status": "ok",
         "device": Engine.device,
-        "model": str(MODEL_DIR.name),
+        "model": str(Engine.model_dir.name),
         "parameters_billion": round(Engine.model.num_parameters() / 1e9, 2),
         "cuda_available": torch.cuda.is_available(),
     }
@@ -97,7 +150,8 @@ def health():
 
 @app.post("/api/chat")
 def chat(req: ChatRequest):
-    Engine.load()
+    if not Engine.load():
+        return {"error": "模型未就绪，请先下载模型"}
     messages = [m.model_dump() for m in req.messages]
     prompt_ids = build_prompt_ids(Engine.tokenizer, messages, req.system_prompt)
     cfg = GenConfig(max_new_tokens=req.max_tokens, temperature=req.temperature,
@@ -109,7 +163,10 @@ def chat(req: ChatRequest):
 
 @app.post("/api/chat/stream")
 def chat_stream(req: ChatRequest):
-    Engine.load()
+    if not Engine.load():
+        async def err_gen():
+            yield f"data: {json.dumps({'error': '模型未就绪，请先下载模型'}, ensure_ascii=False)}\n\n"
+        return StreamingResponse(err_gen(), media_type="text/event-stream")
     messages = [m.model_dump() for m in req.messages]
     prompt_ids = build_prompt_ids(Engine.tokenizer, messages, req.system_prompt)
     cfg = GenConfig(max_new_tokens=req.max_tokens, temperature=req.temperature,

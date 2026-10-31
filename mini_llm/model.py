@@ -122,10 +122,11 @@ class Attention(nn.Module):
         kv_heads = cfg.num_key_value_heads
 
         # Q 投影到全部查询头；K/V 只投影到少量 KV 头
+        # Qwen2.5-0.5B 官方权重：q/k/v 带 bias，o_proj 不带 bias
         self.q_proj = nn.Linear(h, q_heads * cfg.head_dim, bias=True)
         self.k_proj = nn.Linear(h, kv_heads * cfg.head_dim, bias=True)
         self.v_proj = nn.Linear(h, kv_heads * cfg.head_dim, bias=True)
-        self.o_proj = nn.Linear(q_heads * cfg.head_dim, h, bias=True)
+        self.o_proj = nn.Linear(q_heads * cfg.head_dim, h, bias=False)
 
     def forward(self, x: torch.Tensor,
                 cos: torch.Tensor, sin: torch.Tensor,

@@ -30,7 +30,7 @@ class GenConfig:
 
 def _sample(logits: torch.Tensor, cfg: GenConfig) -> int:
     """从最后一个位置的 logits 按策略采样一个 token。"""
-    logits = logits[-1].float()
+    logits = logits.float()
 
     # 重复惩罚：已出现过的 token 按概率反向缩放
     if cfg.repetition_penalty != 1.0:

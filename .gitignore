@@ -5,6 +5,12 @@ checkpoints/
 *.gguf
 *.bin
 
+# 打包产物与发布包（走 GitHub Release，不入库）
+dist/
+build/
+release/
+StarDebug.spec
+
 # Python
 __pycache__/
 *.py[cod]
