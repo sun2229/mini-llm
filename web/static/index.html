@@ -12,11 +12,15 @@
       <div class="brand">
         <span class="logo">◈</span>
         <div>
-          <h1>Mini-LLM</h1>
+          <h1>Star</h1>
           <p id="status">正在检查模型状态…</p>
         </div>
       </div>
       <div class="actions">
+        <div class="mode-tabs" id="modeTabs">
+          <button id="tabChat" class="mode-tab active">对话</button>
+          <button id="tabPaint" class="mode-tab">绘画</button>
+        </div>
         <button id="clearBtn" class="btn ghost" title="清空对话">清空对话</button>
       </div>
     </header>
@@ -36,6 +40,45 @@
         <div class="progress" id="progressWrap" hidden>
           <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
           <p class="hint" id="progressText">准备中…</p>
+        </div>
+      </div>
+
+      <!-- 本地绘画面板 -->
+      <div class="welcome paint-panel" id="paintPanel" hidden>
+        <h2>本地绘画</h2>
+        <p class="desc">用文字描述画面，模型在本地生成图片，不会上传任何内容。</p>
+        <textarea id="paintInput" rows="2" placeholder="描述你想画的画面，例如：黄昏的海边，一只橘猫坐在岩石上看日落"></textarea>
+        <div class="paint-options">
+          <label>尺寸
+            <select id="paintSize">
+              <option value="512x512">方形 512×512</option>
+              <option value="512x768">竖版 512×768</option>
+              <option value="768x512">横版 768×512</option>
+            </select>
+          </label>
+          <label>质量
+            <select id="paintSteps">
+              <option value="4">标准（快）</option>
+              <option value="8">精细</option>
+              <option value="12">高精细</option>
+            </select>
+          </label>
+        </div>
+        <div class="model-actions">
+          <button id="paintBtn" class="btn primary big">生成图片</button>
+          <p class="hint" id="paintHint" hidden></p>
+        </div>
+        <div class="progress" id="paintProgressWrap" hidden>
+          <div class="progress-bar"><div class="progress-fill" id="paintProgressFill"></div></div>
+          <p class="hint" id="paintProgressText">准备中…</p>
+        </div>
+        <div class="paint-result" id="paintResult" hidden>
+          <img id="paintImg" alt="生成的图片" />
+          <div class="paint-meta" id="paintMeta"></div>
+          <div class="paint-actions">
+            <button id="paintSaveBtn" class="btn primary">下载图片</button>
+            <button id="paintAgainBtn" class="btn ghost">再画一张</button>
+          </div>
         </div>
       </div>
     </main>

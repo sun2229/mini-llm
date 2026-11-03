@@ -23,6 +23,7 @@ from pydantic import BaseModel
 
 from mini_llm.chat import DEFAULT_SYSTEM_PROMPT, build_prompt_ids
 from mini_llm.generation import GenConfig, generate, generate_stream
+from mini_llm import image_gen
 from mini_llm.model_manager import ModelManager
 from mini_llm.tokenizer import ChatTokenizer
 from mini_llm.weights import build_model_from_dir
@@ -35,9 +36,12 @@ else:
     ROOT = Path(__file__).resolve().parent.parent
 MODELS_DIR = Path(os.environ.get("MINI_LLM_MODELS", ROOT / "models"))
 MODEL_DIR = Path(os.environ.get("MINI_LLM_MODEL", "")) or (MODELS_DIR / "Qwen2.5-0.5B-Instruct")
+GENERATED_DIR = ROOT / "generated"
 
-app = FastAPI(title="Mini-LLM", version="1.0.0")
+app = FastAPI(title="Star", version="1.1.0")
+GENERATED_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
+app.mount("/generated", StaticFiles(directory=GENERATED_DIR), name="generated")
 manager = ModelManager(MODELS_DIR)
 
 
@@ -110,6 +114,62 @@ def download_model():
 @app.get("/api/download-progress")
 def download_progress():
     return manager.download_progress()
+
+
+# --------------------------------------------------------------------------- #
+# 图像生成接口（Star 本地绘画）
+# --------------------------------------------------------------------------- #
+class GenImageRequest(BaseModel):
+    prompt: str
+    negative_prompt: str = ""
+    steps: int = 4
+    width: int = 512
+    height: int = 512
+    seed: int | None = None
+
+
+@app.get("/api/image-status")
+def image_status():
+    return {
+        "available": image_gen.sd_available(MODELS_DIR),
+        "loaded": image_gen.ImageGenerator.pipe is not None,
+        "gpu": manager.has_nvidia_gpu(),
+        "torch_cuda": torch.cuda.is_available(),
+        "model_dir": str(image_gen.sd_model_dir(MODELS_DIR)),
+    }
+
+
+@app.post("/api/download-sd")
+def download_sd():
+    state = manager.download_repo(
+        image_gen.SD_REPO_ID, image_gen.sd_model_dir(MODELS_DIR))
+    return {"started": state["running"], "state": state}
+
+
+@app.post("/api/gen-image")
+def gen_image(req: GenImageRequest):
+    if not req.prompt.strip():
+        return {"error": "请先输入画面描述"}
+    if not image_gen.ImageGenerator.load(MODELS_DIR):
+        return {"error": "绘画模型未就绪，请先下载", "download_required": True}
+    import time as _t
+    t0 = _t.time()
+    try:
+        img, seed = image_gen.ImageGenerator.generate(
+            req.prompt.strip(), req.negative_prompt.strip(),
+            steps=max(1, min(req.steps, 12)),
+            width=req.width, height=req.height, seed=req.seed)
+    except Exception as e:  # noqa: BLE001
+        return {"error": f"生成失败: {e}"}
+    fname = f"star_{_t.strftime('%Y%m%d_%H%M%S')}_{seed}.png"
+    out = GENERATED_DIR / fname
+    img.save(out, format="PNG")
+    return {
+        "url": f"/generated/{fname}",
+        "seed": seed,
+        "elapsed_s": round(_t.time() - t0, 1),
+        "device": image_gen.ImageGenerator.device,
+    }
 
 
 # --------------------------------------------------------------------------- #

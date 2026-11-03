@@ -22,7 +22,7 @@ DEFAULT_MODEL_ID = "Qwen/Qwen2.5-0.5B-Instruct"
 DEFAULT_MODEL_DIRNAME = "Qwen2.5-0.5B-Instruct"
 
 ALLOW_EXT = (".json", ".safetensors", ".txt", ".model")
-DENY_KEYWORDS = ("pytorch_model", ".gguf", ".bin", ".msgpack", ".ot", ".h5")
+DENY_KEYWORDS = (".gguf", ".bin", ".msgpack", ".ot", ".h5")
 
 _MODELSCOPE_API = "https://modelscope.cn/api/v1/models"
 
@@ -87,6 +87,16 @@ class ModelManager:
     # ------------------------------------------------------------- #
     def download_default(self, repo_id: str | None = None) -> dict:
         repo_id = repo_id or DEFAULT_MODEL_ID
+        return self.download_repo(repo_id, self.models_dir / repo_id.split("/")[-1])
+
+    def download_repo(self, repo_id: str, target_dir: str | Path,
+                      variant: str | None = None) -> dict:
+        """后台下载任意 ModelScope 仓库到 target_dir（含进度）。
+
+        variant="fp16" 时优先只下载 .fp16.safetensors 变体（排除同名 fp32），
+        用于图像等权重较大的模型，避免重复下载。
+        """
+        target_dir = Path(target_dir)
         with self._lock:
             if self._download_state["running"]:
                 return self._download_state.copy()
@@ -95,9 +105,8 @@ class ModelManager:
                 message="开始下载", done=False, error=None)
 
         def _worker():
-            target_dir = self.models_dir / repo_id.split("/")[-1]
             try:
-                files = self._planned_files(repo_id)
+                files = self._planned_files(repo_id, variant)
                 if not files:
                     raise RuntimeError("无法获取模型文件清单，请检查网络")
                 total = sum(files.values())
@@ -120,9 +129,10 @@ class ModelManager:
 
                     self._download_one(repo_id, f, local, size, _on_progress)
 
-                # 完整性兜底：config.json 缺失则报错
-                if not (target_dir / "config.json").exists():
-                    raise RuntimeError("模型文件不完整（缺少 config.json）")
+                # 完整性兜底：核心文件缺失则报错
+                if not (target_dir / "config.json").exists() \
+                        and not (target_dir / "model_index.json").exists():
+                    raise RuntimeError("模型文件不完整（缺少 config.json/model_index.json）")
 
                 with self._lock:
                     self._download_state.update(
@@ -137,17 +147,36 @@ class ModelManager:
         threading.Thread(target=_worker, daemon=True).start()
         return self._download_state.copy()
 
-    def _planned_files(self, repo_id: str) -> dict[str, int]:
+    def _planned_files(self, repo_id: str,
+                       variant: str | None = None) -> dict[str, int]:
         """通过 ModelScope 公开 API 获取文件清单 {路径: 字节数}。"""
         url = f"{_MODELSCOPE_API}/{repo_id}/repo/files?Revision=master&Recursive=true"
         data = _api_json(url)
         files_data = (data.get("Data") or {}).get("Files") or []
         picked: dict[str, int] = {}
+        # 记录同名 safetensors 的 fp16 变体，用于 variant 过滤
+        fp16_names: set[str] = set()
+        if variant:
+            for f in files_data:
+                name = f.get("Path", "")
+                if name.endswith(".fp16.safetensors"):
+                    fp16_names.add(name.replace(".fp16.safetensors", ".safetensors"))
         for f in files_data:
             name = f.get("Path", "")
             size = int(f.get("Size") or 0)
-            if _filter(name):
-                picked[name] = size
+            if not _filter(name):
+                continue
+            if variant == "fp16":
+                # fp16 变体模式：
+                #  - .fp16.safetensors 保留
+                #  - 根目录整包权重（如 sd_turbo.safetensors）跳过
+                #  - 子目录同名 fp32 版本跳过
+                if name.endswith(".safetensors") and not name.endswith(".fp16.safetensors"):
+                    if "/" not in name:
+                        continue
+                    if name in fp16_names:
+                        continue
+            picked[name] = size
         return picked
 
     def _download_one(self, repo_id: str, file_path: str, local: Path,

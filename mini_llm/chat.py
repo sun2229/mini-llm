@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from .tokenizer import ChatTokenizer
 
-DEFAULT_SYSTEM_PROMPT = "你是一个乐于助人的智能助手，请用简洁准确的中文回答问题。"
+DEFAULT_SYSTEM_PROMPT = "你是 Star，一个运行在用户自己电脑上的本地大模型助手，基于 Qwen2.5 架构。你的用户叫 Stay。请用简洁准确的中文回答问题，语气自然友好，并始终记得用户是 Stay。"
 
 
 def render_chatml(messages: list[dict], system_prompt: str | None = DEFAULT_SYSTEM_PROMPT) -> str:
