@@ -48,9 +48,15 @@
     border: 1px solid var(--border); color: var(--muted);
   }
   .badge.ok { color: var(--ok); border-color: rgba(53,208,127,.4); }
+  .feature {
+    max-width: 860px; margin: 8px 24px 0; width: calc(100% - 48px);
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 20px; font-size: 14px; color: var(--muted); line-height: 1.8;
+  }
+  .feature b { color: var(--accent2); font-weight: 600; }
   .cards {
     display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
-    padding: 16px 24px 64px; max-width: 900px;
+    padding: 24px 24px 40px; max-width: 900px;
   }
   .card {
     background: var(--card); border: 1px solid var(--border);
@@ -99,7 +105,7 @@
   <div class="hero">
     <div class="logo">★</div>
     <h1>Star · 本地大模型</h1>
-    <p class="subtitle">手搓 Transformer 的 Qwen2.5-0.5B 本地对话软件 —— 离线、私密、双击即用</p>
+    <p class="subtitle">手搓 Transformer 的 Qwen2.5-0.5B 本地助手 —— 对话 · 绘画，离线、私密、双击即用</p>
     <div class="badges">
       <span class="badge ok">Windows 10/11</span>
       <span class="badge ok">完全离线</span>
@@ -108,20 +114,24 @@
     </div>
   </div>
 
+  <div class="feature">
+    <b>v1.1.0 新增</b>：本地图像生成（文字描述 → 图片，N 卡约 2 秒 / CPU 约 17 秒）；对话消息一键复制；生成图片一键下载；软件自称 Star、记得你的名字。所有数据只在本机处理，不向任何云端上传。
+  </div>
+
   <div class="cards">
     <div class="card recommend">
       <span class="tag">推荐 · 首次使用</span>
       <h2>轻量版</h2>
-      <p class="desc">软件本体，不含模型。首次启动自动从 ModelScope 下载约 1GB 模型（一次即可，之后完全离线）。适合网络条件好的用户。</p>
-      <span class="size">安装包约 171MB</span>
-      <a class="btn" href="https://github.com/sun2229/mini-llm/releases/download/v1.0.0/Star-lite-1.0.0.zip">下载轻量版</a>
+      <p class="desc">软件本体，不含模型。首次启动自动下载对话模型（约 1GB）与绘画模型（约 2.6GB），之后完全离线。</p>
+      <span class="size">安装包约 234MB</span>
+      <a class="btn" href="https://github.com/sun2229/mini-llm/releases/download/v1.1.0/Star-lite-1.1.0.zip">下载轻量版</a>
     </div>
     <div class="card">
       <span class="tag full">开箱即用</span>
       <h2>完整版</h2>
-      <p class="desc">软件 + Qwen2.5-0.5B 模型打包在一起，解压即用，无需联网下载模型。适合网络条件一般或想立刻体验的用户。</p>
-      <span class="size">安装包约 922MB</span>
-      <a class="btn" href="https://github.com/sun2229/mini-llm/releases/download/v1.0.0/Star-full-1.0.0.zip">下载完整版</a>
+      <p class="desc">软件 + 对话模型打包在一起，解压即用。绘画模型在绘画页首次使用时自动下载。</p>
+      <span class="size">安装包约 985MB</span>
+      <a class="btn" href="https://github.com/sun2229/mini-llm/releases/download/v1.1.0/Star-full-1.1.0.zip">下载完整版</a>
     </div>
   </div>
 
@@ -129,16 +139,16 @@
     <h3>使用方法</h3>
     <div class="step"><span class="num">1</span><span>下载安装包（zip），右键 → 解压到当前文件夹</span></div>
     <div class="step"><span class="num">2</span><span>进入解压后的 <code>Star</code> 文件夹，双击 <code>Star.exe</code> 打开软件窗口</span></div>
-    <div class="step"><span class="num">3</span><span>轻量版首次启动会自动下载模型，进度条走完即可开始对话</span></div>
+    <div class="step"><span class="num">3</span><span>顶部切换「对话 / 绘画」：对话支持流式回复与一键复制；绘画输入描述 → 生成图片 → 一键下载</span></div>
     <div class="step"><span class="num">4</span><span>浏览器访问 <code>http://127.0.0.1:8123/</code> 也可以使用同一个服务</span></div>
   </div>
 
   <div class="gpu-note">
-    ⚡ 检测到 NVIDIA 显卡时，软件内会提示可安装 GPU 加速组件：推理速度提升约 3–5 倍。当前版本为 CPU 版（N 卡也能跑，只是稍慢），GPU 加速组件包将随后发布。
+    ⚡ 检测到 NVIDIA 显卡时，软件内会提示 GPU 加速。公开下载版为 CPU 版（N 卡也能跑，对话稍慢、绘画约 17 秒/张）；GPU 加速完整版（RTX 系列约 2 秒/张）目前作为开发者本机版，暂未公开分发。
   </div>
 
   <div class="footer">
-    Star v1.0.0 · 开源项目 <a href="https://github.com/sun2229/mini-llm" style="color:var(--muted)">mini-llm</a> · 模型 Qwen/Qwen2.5-0.5B-Instruct
+    Star v1.1.0 · 开源项目 <a href="https://github.com/sun2229/mini-llm" style="color:var(--muted)">mini-llm</a> · 模型 Qwen/Qwen2.5-0.5B-Instruct + sd-turbo
   </div>
 </body>
 </html>
